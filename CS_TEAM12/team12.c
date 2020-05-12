@@ -8,6 +8,7 @@
 
 int main(){
 	printf("Team 12");
+	printf("hello world");
 
 	return 0;
 }
