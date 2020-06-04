@@ -99,6 +99,7 @@ int MEM(unsigned int A, int V, int nRW, int S); //Memory Access
 //Register
 unsigned int R[REG_SIZE]; //Register Array
 unsigned int PC = 0, HI = 0, LO = 0; //PC, instruction register
+unsigned int bp = 0; //breakpoint
 int accessReg(unsigned int A, unsigned int V, int nRW); //Register Access
 
 
@@ -109,6 +110,7 @@ void showRegister(); //r
 int setSr(unsigned int A, unsigned int V){ accessReg(A, V, 1); return 0; } //sr
 void setMem(unsigned int location, unsigned int value){ MEM(location, value, 1, 2); } //sm
 void readMem(unsigned int start, unsigned int end);
+void setBreakPoint(unsigned int val){ bp = val; } //Set BreakPoint
 //step
 unsigned int getRiOp(IR ir){return ir.RI.op;}
 unsigned int getRiRs(IR ir){return ir.RI.rs;}
@@ -133,8 +135,9 @@ int main(){
 	char *rn = (char*)malloc(sizeof(char)*10); //input number
 	char *value = (char*)malloc(sizeof(char)*10); //input value
 	unsigned int temp_rn, temp_v;
-	unsigned int pc, bp = 0;
-	int EXIT = 1, is_loaded = 0;
+	unsigned int pc;
+//	unsigned int bp = 0;
+	int EXIT = 1, is_loaded = 0, step_result = 0;
 
 	while(EXIT){
 		printf("Enter command: ");
@@ -162,9 +165,16 @@ int main(){
 			setPC(pc);
 		}
 		else if(!strcmp(cmd, "g")){ //go
-			while(PC!=0&&PC!=bp)
+			/*while(PC!=0&&PC!=bp)
 				step();
-			setPC(0x400000);
+			setPC(0x400000);*/
+			while(PC!=0){
+				step_result = step();
+				if(step_result == 404)
+					break;
+			}
+			if(PC==0)
+				setPC(0x400000);
 		}
 		else if(!strcmp(cmd, "s")){ //step
 			if(PC==0)
@@ -225,7 +235,8 @@ int main(){
 			fflush(stdout);
 			scanf("%x", &pc);
 			getchar();
-			bp = pc;
+//			bp = pc;
+			setBreakPoint(pc);
 		}
 		/*else if(!strcmp(cmd, "x")) //시뮬레이터 프로그램 종료
 			EXIT = 0;*/
@@ -503,7 +514,7 @@ void readMem(unsigned int start, unsigned int end) { //m
 	}
 }
 
-void step(){ //step
+int step(){ //step
 	IR inst;
 	inst.I = MEM(PC, 0, 0, 2);
 	char ins[10] = "\0";
@@ -713,4 +724,7 @@ void step(){ //step
 			break;
 		}
 	}
+	if(PC == bp)
+		return 404;
+	return 0;
 }
