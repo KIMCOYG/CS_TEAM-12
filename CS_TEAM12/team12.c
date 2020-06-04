@@ -111,6 +111,7 @@ int setSr(unsigned int A, unsigned int V){ accessReg(A, V, 1); return 0; } //sr
 void setMem(unsigned int location, unsigned int value){ MEM(location, value, 1, 2); } //sm
 void readMem(unsigned int start, unsigned int end);
 void setBreakPoint(unsigned int val){ bp = val; } //Set BreakPoint
+unsigned int getBreakPoint(){ return bp; } //Get BreakPoint
 //step
 unsigned int getRiOp(IR ir){return ir.RI.op;}
 unsigned int getRiRs(IR ir){return ir.RI.rs;}
@@ -124,7 +125,7 @@ unsigned int getIiRt(IR ir){return ir.II.rt;}
 unsigned int getIiOper(IR ir){return ir.II.operand;}
 unsigned int getJiOp(IR ir){return ir.JI.op;}
 unsigned int getJiAd(IR ir){return ir.JI.ad;}
-void step();
+int step();
 
 
 
@@ -238,6 +239,8 @@ int main(){
 //			bp = pc;
 			setBreakPoint(pc);
 		}
+		else if(!strcmp(cmd, "getb"))
+			printf("Breakpoint\t\t%x\n", getBreakPoint());
 		/*else if(!strcmp(cmd, "x")) //시뮬레이터 프로그램 종료
 			EXIT = 0;*/
 	}
