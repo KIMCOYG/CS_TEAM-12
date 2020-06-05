@@ -437,6 +437,7 @@ void loadMemory(char *fname){ //Load
 
 	int NOI, NOD; //명령어 갯수, 데이터 갯수
 	int index = 8, i = 0;
+	bp = 0; //BreakPoint 0으로 초기화
 
 //	printf("%s start\n", fname);
 
