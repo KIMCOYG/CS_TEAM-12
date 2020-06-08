@@ -100,16 +100,15 @@ int MEM(unsigned int A, int V, int nRW, int S); //Memory Access
 unsigned int R[REG_SIZE]; //Register Array
 unsigned int PC = 0, HI = 0, LO = 0; //PC, instruction register
 unsigned int bp = 0; //breakpoint
-int accessReg(unsigned int A, unsigned int V, int nRW); //Register Access
+int REG(unsigned int A, unsigned int V, int nRW); //Register Access
 
 
 //Command Line(l, j, g, s, m, r, x, sr, sm)
 void loadMemory(char *fname); //Load
 void setPC(unsigned int val){ PC = val; } //Set PC, Jump Program
 void showRegister(); //r
-int setSr(unsigned int A, unsigned int V){ accessReg(A, V, 1); return 0; } //sr
+int setSr(unsigned int A, unsigned int V){ REG(A, V, 1); return 0; } //sr
 void setMem(unsigned int location, unsigned int value){ MEM(location, value, 1, 2); } //sm
-void readMem(unsigned int start, unsigned int end);
 void setBreakPoint(unsigned int val){ bp = val; } //Set BreakPoint
 unsigned int getBreakPoint(){ return bp; } //Get BreakPoint
 //step
@@ -416,7 +415,7 @@ int MEM(unsigned int A, int V, int nRW, int S){
 }
 
 //Register Access
-int accessReg(unsigned int A, unsigned int V, int nRW){
+int REG(unsigned int A, unsigned int V, int nRW){
 	if(A>ra){
 		printf("Error, A is wrong number\n");
 		return 1;
@@ -480,7 +479,7 @@ void loadMemory(char *fname){ //Load
 	}
 
 	setPC(0x400000);
-	accessReg(sp, 0x80000000, 1);
+	REG(sp, 0x80000000, 1);
 //	printf("load memory func exit\n");
 	fclose(pFile);
 }
@@ -488,34 +487,8 @@ void loadMemory(char *fname){ //Load
 void showRegister(){ //sr
 	printf("[REGISTER]\n");
 	for(int i=0;i<REG_SIZE;i++)
-		printf("R%d = %x\n", i, accessReg(i, 0, 0));
+		printf("R%d = %x\n", i, REG(i, 0, 0));
 	printf("PC: %x\n", PC);
-}
-
-void readMem(unsigned int start, unsigned int end) { //m
-	printf("start %x,  end %x \n", start, end);
-	for (int j = 0; j < 3; j++) {
-		for (unsigned int i = start; i < end; i += 4) {
-			if (progMem[i] != 0 && j == 0) {
-				printf("i    :    %d,  progMEM : %x\n", i, progMem[i]);
-				printf("i + 1:    %d,  progMEM : %x\n", i, progMem[i + 1]);
-				printf("i + 2:    %d,  progMEM : %x\n", i, progMem[i + 2]);
-				printf("i + 3:    %d,  progMEM : %x\n", i, progMem[i + 3]);
-			}
-			if (dataMem[i] != 0 && j == 1) {
-				printf("i    :    %d,  dataMEM : %x\n", i, dataMem[i]);
-				printf("i + 1:    %d,  dataMEM : %x\n", i, dataMem[i + 1]);
-				printf("i + 2:    %d,  dataMEM : %x\n", i, dataMem[i + 2]);
-				printf("i + 3:    %d,  dataMEM : %x\n", i, dataMem[i + 3]);
-			}
-			if (stackMem[i] != 0 && j == 2) {
-				printf("i    :    %d,  stakMEM : %x\n", i, stackMem[i]);
-				printf("i + 1:    %d,  stakMEM : %x\n", i, stackMem[i + 1]);
-				printf("i + 2:    %d,  stakMEM : %x\n", i, stackMem[i + 2]);
-				printf("i + 3:    %d,  stakMEM : %x\n", i, stackMem[i + 3]);
-			}
-		}
-	}
 }
 
 int step(){ //step
@@ -536,7 +509,7 @@ int step(){ //step
 	case 1:
 		strcpy(ins, "bltz"); //
 		printf("%s %d %d\n", ins, iiRs, iiOper*4);
-		if(ALU(accessReg(iiRs,0,0),0,SL,1)==1)
+		if(ALU(REG(iiRs,0,0),0,SL,1)==1)
 			setPC(PC+iiOper*4-4);
 		break;
 	case 2:
@@ -547,184 +520,185 @@ int step(){ //step
 	case 3:
 		strcpy(ins, "jal");
 		printf("%s 0x%08x\n", ins, jiAd*4);
-		accessReg(ra, PC, 1);
+		REG(ra, PC, 1);
 		setPC(jiAd*4);
 		break;
 	case 4: //
 		strcpy(ins, "beq");
 		printf("%s $%d, $%d, %d\n", ins, iiRs, iiRt, iiOper*4);
-		if(ALU(accessReg(iiRs,0,0), accessReg(iiRt,0,0), SUB, &Z) == 0)
+		if(ALU(REG(iiRs,0,0), REG(iiRt,0,0), SUB, &Z) == 0)
 			setPC(PC+iiOper*4-4);
 		break;
 	case 5: //
 		strcpy(ins, "bne");
 		printf("%s $%d, $%d, %d\n", ins, iiRs, iiRt, iiOper*4);
-		if(ALU(accessReg(iiRs,0,0), accessReg(iiRt,0,0), SUB, &Z) != 0)
+		if(ALU(REG(iiRs,0,0), REG(iiRt,0,0), SUB, &Z) != 0)
 				setPC(PC+iiOper*4-4);
 		break;
 
 	case 8:
 		strcpy(ins, "addi");
+
 		printf("%s $%d, $%d, %d\n", ins, iiRt, iiRs, (short)iiOper);
-		val = ALU(accessReg(iiRs,0,0), iiOper, ADD, &Z);
+		val = ALU(REG(iiRs,0,0), (short)iiOper, ADD, &Z);
 //		printf("%d %d %d\n", iiOper, (short)iiOper, (int)iiOper);
-		accessReg(iiRt, val, 1); //!!
+		REG(iiRt, val, 1); //!!
 		break;
 	case 10:
 		strcpy(ins, "slti");
 		printf("%s $%d, $%d, %d\n", ins, iiRt, iiRs, (short)iiOper);
-		val = ALU(accessReg(iiRs,0,0), iiOper, SL, &Z);
-		accessReg(iiRt, val, 1); //!!
+		val = ALU(REG(iiRs,0,0), iiOper, SL, &Z);
+		REG(iiRt, val, 1); //!!
 		break;
 	case 12:
 		strcpy(ins, "andi");
 		printf("%s $%d, $%d, %d\n", ins, iiRt, iiRs, (short)iiOper);
-		val = ALU(accessReg(iiRs,0,0), iiOper, AND, &Z);
+		val = ALU(REG(iiRs,0,0), iiOper, AND, &Z);
 //		printf("%d %d %d\n", iiOper, (short)iiOper, (int)iiOper);
-		accessReg(iiRt, val, 1); //!
+		REG(iiRt, val, 1); //!
 		break;
 	case 13:
 		strcpy(ins, "ori");
 		printf("%s $%d, $%d, %d\n", ins, iiRt, iiRs, (short)iiOper);
-		val = ALU(accessReg(iiRs,0,0), iiOper, OR, &Z);
+		val = ALU(REG(iiRs,0,0), iiOper, OR, &Z);
 //		printf("%d %d %d\n", iiOper, (short)iiOper, (int)iiOper);
-		accessReg(iiRt, val, 1);
+		REG(iiRt, val, 1);
 		break;
 	case 14:
 		strcpy(ins, "xori");
 		printf("%s $%d, $%d, %d\n", ins, iiRt, iiRs, (short)iiOper);
-		val = ALU(accessReg(iiRs,0,0), iiOper, XOR, &Z);
-		accessReg(iiRt, val, 1);
+		val = ALU(REG(iiRs,0,0), iiOper, XOR, &Z);
+		REG(iiRt, val, 1);
 		break;
 	case 15:
 		strcpy(ins, "lui"); //
 		printf("%s $%d, %d\n", ins, iiRt, (short)iiOper);
 		val = ALU(iiOper, 16, SLL, &Z);
-		accessReg(iiRt, val, 1);
+		REG(iiRt, val, 1);
 		break;
 
 	case 32:
 		strcpy(ins, "lb"); //바이트 단위로 데이터 로드
-		printf("%s $%d, %d($%d)\n", ins, iiRt, iiOper, iiRs);
+		printf("%s $%d, %d($%d)\n", ins, iiRt, (short)iiOper, iiRs);
 		//Sign Extend to 32 bits in rt -> (int)
-		val = (int)MEM(accessReg(iiRs, 0, 0)+(short)iiOper, 0, 0, 2);
-		accessReg(iiRt, val, 1);
+		val = (int)MEM(REG(iiRs, 0, 0)+(short)iiOper, 0, 0, 2);
+		REG(iiRt, val, 1);
 		break;
 	case 35:
 		strcpy(ins, "lw"); //
-		printf("%s $%d, %d($%d)\n", ins, iiRt, iiOper, iiRs);
-		val = MEM(accessReg(iiRs, 0, 0)+iiOper, 0, 0, 2);
-		accessReg(iiRt, val, 1);
+		printf("%s $%d, %d($%d)\n", ins, iiRt, (short)iiOper, iiRs);
+		val = MEM(REG(iiRs, 0, 0)+(short)iiOper, 0, 0, 2);
+		REG(iiRt, val, 1);
 		break;
 	case 36:
 		strcpy(ins, "lbu"); //
-		printf("%s $%d, %d($%d)\n", ins, iiRt, iiOper, iiRs);
+		printf("%s $%d, %d($%d)\n", ins, iiRt, (short)iiOper, iiRs);
 		//Zero Extend to 32 bits in rt
-		val = (unsigned int)MEM(accessReg(iiRs, 0, 0)+iiOper, 0, 0, 2);
-		accessReg(iiRt, val, 1);
+		val = (unsigned int)MEM(REG(iiRs, 0, 0)+(short)iiOper, 0, 0, 2);
+		REG(iiRt, val, 1);
 		break;
 
 	case 40:
 		strcpy(ins, "sb"); //
-		printf("%s $%d, %d($%d)\n", ins, iiRt, iiOper, iiRs);
+		printf("%s $%d, %d($%d)\n", ins, iiRt, (short)iiOper, iiRs);
 		//Store just rightmost byte/halfword
-		MEM(accessReg(iiRs,0,0)+iiOper, (int)accessReg(iiRt,0,0), 1, 2);
+		MEM(REG(iiRs,0,0)+iiOper, (int)REG(iiRt,0,0), 1, 2);
 		break;
 	case 43:
 		strcpy(ins, "sw");
-		printf("%s $%d, %d($%d)\n", ins, iiRt, iiOper, iiRs); //
-		MEM(accessReg(iiRs,0,0)+iiOper, accessReg(iiRt,0,0), 1, 2);
+		printf("%s $%d, %d($%d)\n", ins, iiRt, (short)iiOper, iiRs); //
+		MEM(REG(iiRs,0,0)+(short)iiOper, REG(iiRt,0,0), 1, 2);
 		break;
 	default:
 		switch(riFn){
 		case 0:
 			strcpy(ins, "sll");
 			printf("%s $%d, $%d, %d\n", ins, riRd, riRt, riSh);
-			val = ALU(accessReg(riRt,0,0), riSh, SLL, &Z);
-			accessReg(riRd, val, 1);
+			val = ALU(REG(riRt,0,0), riSh, SLL, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 2:
 			strcpy(ins, "srl");
 			printf("%s $%d, $%d, %d\n", ins, riRd, riRt, riSh);
-			val = ALU(accessReg(riRt,0,0), riSh, SRL, &Z);
-			accessReg(riRd, val, 1);
+			val = ALU(REG(riRt,0,0), riSh, SRL, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 3:
 			strcpy(ins, "sra");
 			printf("%s $%d, $%d, %d\n", ins, riRd, riRt, riSh);
-			val = ALU(accessReg(riRt,0,0), riSh, SRA, &Z);
-			accessReg(riRd, val, 1);
+			val = ALU(REG(riRt,0,0), riSh, SRA, &Z);
+			REG(riRd, val, 1);
 			break;
 
 		case 8:
 			strcpy(ins, "jr");
 			printf("%s $%d\n", ins, riRs);
-			setPC(accessReg(ra,0,0));
+			setPC(REG(ra,0,0));
 			break;
 		case 12:
 			strcpy(ins, "syscall");
-			printf("%s %d\n", ins, accessReg(2,0,0));
-			if(accessReg(2,0,0)==10)
+			printf("%s %d\n", ins, REG(2,0,0));
+			if(REG(2,0,0)==10)
 				setPC(0);
 			break;
 
 		case 16:
 			strcpy(ins, "mfhi"); //
 			printf("%s %d\n", ins, riRs);
-			accessReg(accessReg(riRs,0,0), HI, 1);
+			REG(REG(riRs,0,0), HI, 1);
 			break;
 		case 18:
 			strcpy(ins, "mflo"); //
 			printf("%s %d", ins, riRs);
-			accessReg(accessReg(riRs,0,0), LO, 1);
+			REG(REG(riRs,0,0), LO, 1);
 			break;
 
 		case 24:
 			strcpy(ins, "mul");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			accessReg(riRd, riRs*riRt, 1);
+			REG(riRd, riRs*riRt, 1);
 			break;
 		case 32:
 			strcpy(ins, "add");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), ADD, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), ADD, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 34:
 			strcpy(ins, "sub");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), SUB, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), SUB, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 36:
 			strcpy(ins, "and");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), AND, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), AND, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 37:
 			strcpy(ins, "or");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), OR, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), OR, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 38:
 			strcpy(ins, "xor");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), XOR, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), XOR, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 39:
 			strcpy(ins, "nor");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), NOR, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), NOR, &Z);
+			REG(riRd, val, 1);
 			break;
 		case 42:
 			strcpy(ins, "slt");
 			printf("%s $%d, $%d, $%d\n", ins, riRd, riRs, riRt);
-			val = (unsigned int)ALU(accessReg(riRs,0,0), accessReg(riRt,0,0), SL, &Z);
-			accessReg(riRd, val, 1);
+			val = (unsigned int)ALU(REG(riRs,0,0), REG(riRt,0,0), SL, &Z);
+			REG(riRd, val, 1);
 			break;
 		}
 	}
